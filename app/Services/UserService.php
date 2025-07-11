@@ -20,9 +20,9 @@ class UserService
         // Apply search filter
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'ILIKE', "%{$search}%")
-                    ->orWhere('email', 'ILIKE', "%{$search}%")
-                    ->orWhere('phone', 'ILIKE', "%{$search}%");
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%")
+                    ->orWhere('phone', 'LIKE', "%{$search}%");
             });
         }
 

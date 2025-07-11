@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -34,8 +35,10 @@ class AuthTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('users', [
+            'name' => 'John Doe',
             'email' => 'john@example.com',
-            'role' => UserRole::USER->value,
+            'phone' => '081234567890',
+            'role' => UserRole::USER,
         ]);
     }
 
@@ -65,6 +68,11 @@ class AuthTest extends TestCase
 
     public function test_user_cannot_login_with_invalid_credentials(): void
     {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
         $response = $this->postJson('/api/auth/login', [
             'email' => 'test@example.com',
             'password' => 'wrongpassword',
@@ -80,11 +88,9 @@ class AuthTest extends TestCase
     public function test_authenticated_user_can_logout(): void
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        Sanctum::actingAs($user);
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/auth/logout');
+        $response = $this->postJson('/api/auth/logout');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -95,12 +101,13 @@ class AuthTest extends TestCase
 
     public function test_authenticated_user_can_get_profile(): void
     {
-        $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $user = User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+        ]);
+        Sanctum::actingAs($user);
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->getJson('/api/auth/me');
+        $response = $this->getJson('/api/auth/me');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -108,17 +115,23 @@ class AuthTest extends TestCase
                 'data' => [
                     'user' => ['id', 'name', 'email', 'role']
                 ]
+            ])
+            ->assertJson([
+                'data' => [
+                    'user' => [
+                        'name' => 'Test User',
+                        'email' => 'test@example.com',
+                    ]
+                ]
             ]);
     }
 
     public function test_admin_can_create_admin_user(): void
     {
         $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-        $token = $admin->createToken('test-token')->plainTextToken;
+        Sanctum::actingAs($admin);
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/auth/register', [
+        $response = $this->postJson('/api/auth/register', [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'phone' => '081234567890',
@@ -131,18 +144,16 @@ class AuthTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'admin@example.com',
-            'role' => UserRole::ADMIN->value,
+            'role' => UserRole::ADMIN,
         ]);
     }
 
     public function test_regular_user_cannot_create_admin_user(): void
     {
         $user = User::factory()->create(['role' => UserRole::USER]);
-        $token = $user->createToken('test-token')->plainTextToken;
+        Sanctum::actingAs($user);
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/auth/register', [
+        $response = $this->postJson('/api/auth/register', [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'phone' => '081234567890',
@@ -153,5 +164,41 @@ class AuthTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['role']);
+    }
+
+    public function test_registration_requires_valid_data(): void
+    {
+        $response = $this->postJson('/api/auth/register', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'name',
+                'email',
+                'password'
+            ]);
+    }
+
+    public function test_registration_requires_unique_email(): void
+    {
+        User::factory()->create(['email' => 'existing@example.com']);
+
+        $response = $this->postJson('/api/auth/register', [
+            'name' => 'John Doe',
+            'email' => 'existing@example.com',
+            'phone' => '081234567890',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_login_requires_valid_data(): void
+    {
+        $response = $this->postJson('/api/auth/login', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email', 'password']);
     }
 }

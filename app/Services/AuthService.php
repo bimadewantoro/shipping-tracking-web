@@ -22,7 +22,7 @@ class AuthService
         }
 
         // Only admins can create admin accounts via API
-        if (isset($data['role']) && $data['role'] === UserRole::ADMIN) {
+        if (isset($data['role']) && ($data['role'] === UserRole::ADMIN || $data['role'] === UserRole::ADMIN->value)) {
             $currentUser = Auth::user();
             if (!$currentUser || !$currentUser->isAdmin()) {
                 throw ValidationException::withMessages([
