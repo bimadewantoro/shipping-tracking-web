@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -46,7 +47,29 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{user}', [UserController::class, 'destroy']);
         });
     });
+
+    // Order management routes
+    Route::prefix('orders')->group(function () {
+        // Statistics route (must be before the parameterized routes)
+        Route::get('statistics', [OrderController::class, 'statistics']);
+
+        // Routes accessible by all authenticated users
+        Route::get('/', [OrderController::class, 'index']);
+        Route::post('/', [OrderController::class, 'store']);
+        Route::get('/{order}', [OrderController::class, 'show']);
+        Route::post('/{order}/confirm', [OrderController::class, 'createBiteshipOrder']);
+        Route::post('/{order}/cancel', [OrderController::class, 'cancel']);
+        Route::get('/{order}/track', [OrderController::class, 'track']);
+    });
 });
+
+// Public routes (no authentication required)
+Route::prefix('public')->group(function () {
+    // Public tracking for customers
+    Route::get('track', [OrderController::class, 'publicTracking']);
+});
+
+
 
 // Health check route
 Route::get('health', function () {

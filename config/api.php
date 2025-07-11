@@ -42,6 +42,7 @@ return [
         'api_key' => env('BITESHIP_API_KEY'),
         'api_url' => env('BITESHIP_API_URL', 'https://api.biteship.com/v1'),
         'timeout' => 30, // seconds
+        'webhook_secret' => env('BITESHIP_WEBHOOK_SECRET'),
     ],
 
     /*
