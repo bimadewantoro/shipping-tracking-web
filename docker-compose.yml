@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: shipping_tracking_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: shipping_tracking_web
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ""
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - shipping_tracking_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  shipping_tracking_network:
+    driver: bridge
