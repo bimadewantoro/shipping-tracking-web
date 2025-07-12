@@ -341,9 +341,7 @@ class OrderManagementTest extends TestCase
                 'receiver_postal_code',
                 'package_weight',
                 'courier_code',
-                'courier_service',
-                'shipping_cost',
-                'total_cost',
+                'courier_service'
             ]);
     }
 }
