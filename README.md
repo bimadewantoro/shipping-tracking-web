@@ -629,7 +629,6 @@ Authorization: Bearer {your-token-here}
     }
     ```
     **Note**: `reason` field is optional (max 500 characters)
-    ```
 
 #### Track Order
 
